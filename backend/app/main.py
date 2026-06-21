@@ -20,9 +20,20 @@ def root():
 @app.post("/verify")
 def verify_label(request: LabelRequest):
 
+    text = request.ocr_text.upper()
+
+    brand_match = request.brand_name.upper() in text
+    abv_match = request.alcohol_content.upper() in text
+    net_contents_match = request.net_contents.upper() in text
+
+    if brand_match and abv_match and net_contents_match:
+        status = "PASS"
+    else:
+        status = "REVIEW"
+
     return {
-        "brand_name": request.brand_name,
-        "alcohol_content": request.alcohol_content,
-        "net_contents": request.net_contents,
-        "status": "Verification endpoint working"
-        }
+        "brand_match": brand_match,
+        "abv_match": abv_match,
+        "net_contents_match": net_contents_match,
+        "status": status
+    }
