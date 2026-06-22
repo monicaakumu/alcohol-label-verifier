@@ -1,7 +1,10 @@
 import boto3
 
 
-textract = boto3.client("textract")
+textract = boto3.client(
+    "textract",
+    region_name="us-east-1"
+)
 
 
 def extract_text_from_file(file_path):
