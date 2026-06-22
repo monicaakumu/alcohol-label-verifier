@@ -1,0 +1,71 @@
+---
+- name: Deploy Alcohol Label Verifier
+  hosts: app
+  become: yes
+
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install required packages
+      apt:
+        name:
+          - git
+          - python3
+          - python3-venv
+          - python3-pip
+        state: present
+
+    - name: Clone application repository
+      git:
+        repo: https://github.com/monicaakumu/alcohol-label-verifier.git
+        dest: /home/ubuntu/alcohol-label-verifier
+        version: main
+        force: yes
+      become_user: ubuntu
+
+    - name: Create uploads directory
+      file:
+        path: /home/ubuntu/alcohol-label-verifier/backend/uploads
+        state: directory
+        owner: ubuntu
+        group: ubuntu
+        mode: "0755"
+
+    - name: Create Python virtual environment
+      command: python3 -m venv /home/ubuntu/alcohol-label-verifier/backend/venv
+      args:
+        creates: /home/ubuntu/alcohol-label-verifier/backend/venv
+
+    - name: Install Python dependencies
+      pip:
+        requirements: /home/ubuntu/alcohol-label-verifier/backend/requirements.txt
+        virtualenv: /home/ubuntu/alcohol-label-verifier/backend/venv
+
+    - name: Create systemd service
+      copy:
+        dest: /etc/systemd/system/alcohol-label-verifier.service
+        content: |
+          [Unit]
+          Description=Alcohol Label Verifier FastAPI App
+          After=network.target
+
+          [Service]
+          User=ubuntu
+          WorkingDirectory=/home/ubuntu/alcohol-label-verifier/backend
+          ExecStart=/home/ubuntu/alcohol-label-verifier/backend/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8001
+          Restart=always
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Reload systemd
+      systemd:
+        daemon_reload: yes
+
+    - name: Start and enable app service
+      systemd:
+        name: alcohol-label-verifier
+        state: restarted
+        enabled: yes
