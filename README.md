@@ -67,6 +67,8 @@ PASS / REVIEW
 * Uvicorn
 * Pydantic
 * Git
+* Terraform
+* Ansible
 * Swagger/OpenAPI
 
 ---
@@ -76,7 +78,7 @@ PASS / REVIEW
 Clone the repository.
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/monicaakumu/alcohol-label-verifier.git
 cd alcohol-label-verifier/backend
 ```
 
@@ -115,6 +117,49 @@ http://127.0.0.1:8001/docs
 
 ---
 
+# Deployment
+
+This application can be deployed to AWS EC2 using the Terraform and Ansible files included in this repository.
+
+## Terraform
+
+From the project root:
+
+```bash
+cd terraform
+terraform init
+terraform plan
+terraform apply
+```
+
+Terraform provisions:
+
+* EC2 Instance
+* Security Group
+* IAM Role for AWS Textract
+* IAM Instance Profile
+* EC2 Key Pair
+
+## Ansible
+
+Before running the Ansible playbook, update `ansible/inventory.ini` with the public IP address of your EC2 instance.
+
+Example:
+
+```ini
+[app]
+<EC2_PUBLIC_IP> ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/KUBERNETES-KEY.pem
+```
+
+Deploy the application:
+
+```bash
+cd ansible
+ansible-playbook -i inventory.ini playbook.yml
+```
+
+---
+
 # API Endpoints
 
 ## GET /
@@ -147,17 +192,17 @@ Checks:
 * Net Contents
 * Government Warning
 
-Returns PASS or REVIEW.
+Returns **PASS** or **REVIEW**.
 
 ---
 
 ## POST /verify-label
 
-Complete workflow.
+Complete end-to-end workflow.
 
 1. Upload image
-2. Extract OCR text
-3. Verify label fields
+2. Extract OCR text using AWS Textract
+3. Verify required label fields
 4. Return PASS or REVIEW
 
 ---
@@ -166,33 +211,35 @@ Complete workflow.
 
 * AWS Textract was selected for managed OCR capabilities.
 * FastAPI was chosen for rapid API development and automatic OpenAPI documentation.
-* Verification is implemented using case-insensitive string comparison to reduce false mismatches caused by capitalization differences.
+* Terraform was used to provision AWS infrastructure.
+* Ansible was used to automate application deployment.
+* Verification uses case-insensitive string matching to reduce false mismatches caused by capitalization differences.
 
 ---
 
 # Assumptions
 
-* AWS credentials are already configured.
-* Uploaded images are readable.
-* OCR quality depends on image quality.
+* AWS credentials are configured.
+* Uploaded label images are readable.
+* OCR accuracy depends on image quality.
 
 ---
 
 # Current Limitations
 
-* Verification is based on text matching.
-* Government Warning verification checks the presence of the supplied warning text but does not validate formatting such as font size or bold text.
-* Batch processing is not implemented.
-* The application currently stores uploaded files locally.
+* Verification uses text matching and does not perform semantic validation.
+* Government Warning verification checks for the presence of the expected warning text but does not validate formatting such as bold text or font size.
+* Batch processing is not yet implemented.
+* Uploaded files are stored locally on the application server.
 
 ---
 
 # Future Enhancements
 
 * Batch label processing
-* Automatic detection of all required TTB fields
-* Improved fuzzy matching for OCR errors
+* Fuzzy matching for OCR inaccuracies
+* Automatic extraction of all required TTB fields
 * Frontend web interface
-* Cloud deployment with persistent object storage
+* Docker containerization
+* CI/CD pipeline with GitHub Actions
 * Integration with enterprise compliance workflows
-
